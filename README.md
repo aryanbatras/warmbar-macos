@@ -2,8 +2,6 @@
 
 A lightweight, menu bar application that provides manual control over your display's color temperature, similar to f.lux but with a simpler, more direct interface.
 
-![WarmBar Screenshot](https://via.placeholder.com/400x250.png?text=WarmBar+Screenshot)
-
 ## Features
 
 - Toggle between multiple color temperature presets
