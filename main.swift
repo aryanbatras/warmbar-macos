@@ -3,14 +3,27 @@ import AppKit
 import CoreGraphics
 import ServiceManagement
 
+// Add this extension to make it easier to use with @AppStorage
+extension Double: RawRepresentable {
+    public init?(rawValue: String) {
+        self = Double(rawValue) ?? 0.0
+    }
+    
+    public var rawValue: String {
+        String(self)
+    }
+}
+
 struct WarmBarApp: App {
+    @StateObject private var tempManager = TemperatureManager()
+    
     init() {
         setupLoginItem()
     }
     
     var body: some Scene {
         MenuBarExtra("WarmBar", systemImage: "sun.max") {
-            ContentView()
+            ContentView(tempManager: tempManager)
         }
     }
     
@@ -32,40 +45,63 @@ struct WarmBarApp: App {
 
 WarmBarApp.main()
 
+class TemperatureManager: ObservableObject {
+    @AppStorage("temperature") private var storedTemperature: Double = 3400
+    @Published var temperature: Double = 3400
+    private var hasInitialized = false
+    
+    init() {
+        self.temperature = storedTemperature
+    }
+    
+    func cycleTemperature() {
+        if temperature == 3400 {
+            temperature = 2500
+        }
+        else if temperature == 2500 {
+            temperature = 1900
+        } else if temperature == 1900 {
+            temperature = 1400
+        } else if temperature == 1400 {
+            temperature = 1000
+        } else if temperature == 1000 {
+            temperature = 600
+        } else if temperature == 600 {
+            temperature = 3400
+        }
+        
+        storedTemperature = temperature
+        applyWarmth(temperature)
+    }
+    
+    func applyStoredTemperature() {
+        if !hasInitialized {
+            temperature = storedTemperature
+            applyWarmth(temperature)
+            hasInitialized = true
+        }
+    }
+}
+
 struct ContentView: View {
-    @State private var temperature: Double = 3400 
+    @ObservedObject var tempManager: TemperatureManager
     @State private var enabled = true
 
     var body: some View {
         VStack(spacing: 12) {
 
             Button(action: {
-                if temperature == 3400 {
-                    temperature = 2500
-                }
-                else if temperature == 2500 {
-                    temperature = 1900
-                } else if temperature == 1900 {
-                    temperature = 1400
-                } else if temperature == 1400 {
-                    temperature = 1000
-                } else if temperature == 1000 {
-                    temperature = 600
-                } else if temperature == 600 {
-                    temperature = 3400
-                }
-
                 if enabled {
-                    applyWarmth(temperature)
+                    tempManager.cycleTemperature()
                 }
             }, label: {
                 Text(
-                    temperature == 3400 ? "Everyday Warm (3400K)" :
-                    temperature == 2500 ? "Normal Warm (2500K)" :
-                    temperature == 1900 ? "Warm (1900K)" :
-                    temperature == 1400 ? "Warm-ish (1400K)" :
-                    temperature == 1000 ? "Very Warm-ish (1000K)" :
-                    temperature == 600 ? "Darkroom (600K)" :
+                    tempManager.temperature == 3400 ? "Everyday Warm (3400K)" :
+                    tempManager.temperature == 2500 ? "Normal Warm (2500K)" :
+                    tempManager.temperature == 1900 ? "Warm (1900K)" :
+                    tempManager.temperature == 1400 ? "Warm-ish (1400K)" :
+                    tempManager.temperature == 1000 ? "Very Warm-ish (1000K)" :
+                    tempManager.temperature == 600 ? "Darkroom (600K)" :
                     "Everyday Warm (3400K)"
                 )
             })
@@ -80,9 +116,9 @@ struct ContentView: View {
         .padding()
         .frame(width: 240)
         .onAppear {
-            // Apply default warmth on app launch
+            // Only apply warmth on first launch, not every time menu opens
             if enabled {
-                applyWarmth(temperature)
+                tempManager.applyStoredTemperature()
             }
         }
     }
